@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/termris/0.1.0")]
+#![doc(html_root_url = "https://docs.rs/termris/0.1.1")]
 //! termris terminal tetris for Rust
 //!
 
@@ -29,16 +29,18 @@ impl Model {
 }
 
 /// View
-pub struct View {
+pub struct View<T> {
+  /// colors
+  pub colors: Vec<T>,
   /// term
   pub tm: PrayTerm
 }
 
 /// View
-impl View {
+impl<T: NopColor + Clone> View<T> {
   /// constructor
   pub fn new() -> Result<Self, Box<dyn Error>> {
-    Ok(View{tm: PrayTerm::new(2)?})
+    Ok(View{colors: vec![], tm: PrayTerm::new(2)?})
   }
 }
 
@@ -47,7 +49,7 @@ pub struct Termris {
   /// model
   pub m: Model,
   /// view
-  pub v: View,
+  pub v: View<Rgb>,
   /// time Instant
   pub t: time::Instant
 }
@@ -70,6 +72,14 @@ impl Termris {
     Ok(s)
   }
 
+  /// status
+  pub fn status(&mut self, h: u16, st: u16,
+    bgc: impl NopColor, fgc: impl NopColor, s: &str) ->
+    Result<(), Box<dyn Error>> {
+    self.v.tm.wr(0, self.v.tm.h - h, st, bgc, fgc, &s.to_string())?;
+    Ok(())
+  }
+
   /// proc
   pub fn proc(&mut self, rx: &mpsc::Receiver<Result<Event, std::io::Error>>) ->
     Result<bool, Box<dyn Error>> {
@@ -77,8 +87,8 @@ impl Termris {
     match rx.recv_timeout(self.m.ms) {
     Err(mpsc::RecvTimeoutError::Disconnected) => Err("Disconnected".into()),
     Err(mpsc::RecvTimeoutError::Timeout) => { // idle
-      self.v.tm.wr(0, 47, 3, Rgb(192, 192, 192), Rgb(8, 8, 8),
-        &format!("{:?}", self.t.elapsed()))?;
+      self.status(3, 3, Rgb(192, 192, 192), Rgb(8, 8, 8),
+        format!("{:?}", self.t.elapsed()).as_str())?;
       Ok(true)
     },
     Ok(ev) => {
@@ -103,21 +113,21 @@ impl Termris {
       Ok(Event::Mouse(MouseEvent{kind, column: x, row: y, modifiers: _})) => {
         match kind {
         MouseEventKind::Moved => {
-          self.v.tm.wr(0, 46, 3, Rgb(192, 192, 192), Rgb(8, 8, 8),
-            &format!("mouse[{}, {}]", x, y))?;
+          self.status(4, 3, Rgb(192, 192, 192), Rgb(8, 8, 8),
+            format!("mouse[{}, {}]", x, y).as_str())?;
           true
         },
         MouseEventKind::Down(MouseButton::Left) => {
-          self.v.tm.wr(0, 45, 3, Rgb(192, 192, 192), Rgb(8, 8, 8),
-            &format!("click[{}, {}]", x, y))?;
+          self.status(5, 3, Rgb(192, 192, 192), Rgb(8, 8, 8),
+            format!("click[{}, {}]", x, y).as_str())?;
           true
         },
         _ => true
         }
       },
       Ok(Event::Resize(w, h)) => {
-        self.v.tm.wr(0, 44, 3, Rgb(192, 192, 192), Rgb(8, 8, 8),
-          &format!("resize[{}, {}]", w, h))?;
+        self.status(6, 3, Rgb(192, 192, 192), Rgb(8, 8, 8),
+          format!("resize[{}, {}]", w, h).as_str())?;
         true
       },
       _ => true
@@ -137,10 +147,10 @@ impl Termris {
 
 pub fn main() -> Result<(), Box<dyn Error>> {
   let mut tr = Termris::new()?;
-  tr.v.tm.wr(0, 0, 3, Rgb(255, 0, 0), Rgb(0, 255, 0), &"thread start".to_string())?;
-  tr.v.tm.wr(0, 1, 3, Rgb(0, 255, 0), Rgb(0, 0, 255), &"main loop".to_string())?;
+  tr.status(50, 3, Color::Red, Color::Green, "thread start")?;
+  tr.status(49, 3, Color::Green, Color::Blue, "main loop")?;
   tr.mainloop()?;
-  tr.v.tm.wr(0, 48, 3, Rgb(0, 0, 255), Rgb(255, 0, 0), &"end".to_string())?;
+  tr.status(2, 3, Color::Blue, Color::Red, "end")?;
   Ok(())
 }
 
