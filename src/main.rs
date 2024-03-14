@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/termris/0.1.2")]
+#![doc(html_root_url = "https://docs.rs/termris/0.3.1")]
 //! termris terminal tetris for Rust
 //!
 
@@ -13,6 +13,8 @@ use crossterm::event::{MouseEvent, MouseEventKind, MouseButton};
 use crossterm::style;
 
 use prayterm::{PrayTerm, Rgb, NopColor};
+
+use mvc_rs::View as MVCView;
 
 /// NColor ARGB bgc fgc
 #[derive(Debug, Clone)]
@@ -44,17 +46,6 @@ impl NopColor for NColor {
   }
 }
 
-/// trait WR
-pub trait WR<T> {
-  /// wr
-  fn wr(&mut self, x: u16, y: u16, st: u16,
-    bgc: u16, fgc: u16, msg: &String) -> Result<(), Box<dyn Error>>;
-  /// reg
-  fn reg(&mut self, c: Vec<T>) -> ();
-  /// col
-  fn col(&self, n: u16) -> T;
-}
-
 /// Model
 pub struct Model {
   /// timeout
@@ -77,8 +68,8 @@ pub struct View<T> {
   pub tm: PrayTerm
 }
 
-/// trait WR for View
-impl<T: NopColor + Clone> WR<T> for View<T> {
+/// trait MVCView for View
+impl<T: NopColor + Clone> MVCView<T> for View<T> {
   /// wr
   fn wr(&mut self, x: u16, y: u16, st: u16,
     bgc: u16, fgc: u16, msg: &String) -> Result<(), Box<dyn Error>> {
