@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/termris/0.3.1")]
+#![doc(html_root_url = "https://docs.rs/termris/0.3.3")]
 //! termris terminal tetris for Rust
 //!
 
@@ -14,7 +14,7 @@ use crossterm::style;
 
 use prayterm::{PrayTerm, Rgb, NopColor};
 
-use mvc_rs::View as MVCView;
+use mvc_rs::{TPacket, TView};
 
 /// NColor ARGB bgc fgc
 #[derive(Debug, Clone)]
@@ -46,6 +46,38 @@ impl NopColor for NColor {
   }
 }
 
+/// Packet
+pub struct Packet<'a> {
+  /// x
+  pub x: u16,
+  /// y
+  pub y: u16,
+  /// style
+  pub st: u16,
+  /// bgc abstract id
+  pub bgc: u16,
+  /// fgc abstract id
+  pub fgc: u16,
+  /// msg
+  pub msg: &'a String
+}
+
+/// trait TPacket for Packet
+impl TPacket for Packet<'_> {
+  /// to_vec
+  fn to_vec(&self) -> Vec<u16> {
+    vec![self.x, self.y, self.st, self.bgc, self.fgc]
+  }
+  /// as_bytes
+  fn as_bytes(&self) -> &[u8] {
+    self.msg.as_bytes()
+  }
+  /// as_str
+  fn as_str(&self) -> &str {
+    self.msg.as_str()
+  }
+}
+
 /// Model
 pub struct Model {
   /// timeout
@@ -68,11 +100,13 @@ pub struct View<T> {
   pub tm: PrayTerm
 }
 
-/// trait MVCView for View
-impl<T: NopColor + Clone> MVCView<T> for View<T> {
+/// trait TView for View
+impl<T: NopColor + Clone> TView<T> for View<T> {
   /// wr
-  fn wr(&mut self, x: u16, y: u16, st: u16,
-    bgc: u16, fgc: u16, msg: &String) -> Result<(), Box<dyn Error>> {
+  fn wr(&mut self, p: impl TPacket) -> Result<(), Box<dyn Error>> {
+    let v = p.to_vec();
+    let (x, y, st, bgc, fgc) = (v[0], v[1], v[2], v[3], v[4]);
+    let msg = &p.as_str().to_string();
     self.tm.wr(x, y, st, self.col(bgc), self.col(fgc), msg)?;
     Ok(())
   }
@@ -139,17 +173,17 @@ impl Termris {
   }
 
   /// status
-  pub fn status(&mut self, h: u16, st: u16, c: u16, s: &String) ->
+  pub fn status(&mut self, h: u16, st: u16, c: u16, msg: &String) ->
     Result<(), Box<dyn Error>> {
-    self.v.wr(0, self.v.tm.h - h, st, c, c + 1, s)?;
+    self.v.wr(Packet{x: 0, y: self.v.tm.h - h, st, bgc: c, fgc: c + 1, msg})?;
     Ok(())
   }
 
   /// stat
   pub fn stat(&mut self, h: u16, st: u16,
-    bgc: impl NopColor, fgc: impl NopColor, s: &String) ->
+    bgc: impl NopColor, fgc: impl NopColor, msg: &String) ->
     Result<(), Box<dyn Error>> {
-    self.v.tm.wr(0, self.v.tm.h - h, st, bgc, fgc, s)?;
+    self.v.tm.wr(0, self.v.tm.h - h, st, bgc, fgc, msg)?;
     Ok(())
   }
 

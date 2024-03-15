@@ -1,6 +1,6 @@
 [package]
 name = "termris"
-version = "0.3.1" # change with html_root_url in main.rs
+version = "0.3.3" # change with html_root_url in main.rs
 edition = "2021"
 authors = ["nomissbowling <nomissbowling@yahoo.co.jp>"]
 
@@ -16,7 +16,7 @@ repository = "https://github.com/nomissbowling/termris"
 readme = "README.md"
 
 [dependencies]
-mvc-rs = { version = "0.1" }
+mvc-rs = { version = "3.3" }
 
 prayterm = { version = "1.0" }
 
