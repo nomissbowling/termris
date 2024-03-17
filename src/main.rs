@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/termris/0.3.4")]
+#![doc(html_root_url = "https://docs.rs/termris/3.4.0")]
 //! termris terminal tetris for Rust
 //!
 
@@ -176,6 +176,7 @@ impl Termris {
   pub fn mainloop(&mut self) -> Result<(), Box<dyn Error>> {
     let (_tx, rx) = self.v.tm.prepare_thread(self.m.ms)?;
     loop { if !self.proc(&rx)? { break; } }
+    self.m.b.display_board(&mut self.v)?;
     // handle.join()?;
     Ok(())
   }
