@@ -1,11 +1,11 @@
 [package]
 name = "termris"
-version = "3.4.0" # change with html_root_url in main.rs
+version = "3.4.1" # change with html_root_url in main.rs
 edition = "2021"
 authors = ["nomissbowling <nomissbowling@yahoo.co.jp>"]
 
 description = "terminal tetris for Rust"
-keywords = ["stdout", "stdin", "crossterm", "console"]
+keywords = ["stdout", "stdin", "crossterm", "console", "tetris"]
 categories = ["development-tools", "game-development", "command-line-utilities", "command-line-interface"]
 license = "MIT"
 

@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/termris/3.4.0")]
+#![doc(html_root_url = "https://docs.rs/termris/3.4.1")]
 //! termris terminal tetris for Rust
 //!
 

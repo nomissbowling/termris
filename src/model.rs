@@ -56,8 +56,9 @@ impl Model {
   }
 
   /// put mino (default action = 0)
-  pub fn put_mino(&mut self, s: Option<Stat>, action: u16) -> u16 {
-    let s = if let Some(s) = s { s } else { self.current.clone() };
+  pub fn put_mino(&mut self, s: Option<&Stat>, action: u16) -> u16 {
+    let o = self.current.clone(); // to keep instance
+    let s = if let Some(s) = s { s } else { &o };
     let (t, c) = if action == 2 { (0, 0) } else { (2, 1 + s.typ) };
     if action != 2 && self.b.get_dot(s.x, s.y) & 0xf0 != 0 { return 0; }
     if action != 0 { self.b.draw_dot(s.x, s.y, t, c); }
@@ -78,7 +79,7 @@ impl Model {
   }
 
   /// delete mino
-  pub fn delete_mino(&mut self, s: Option<Stat>) -> u16 {
+  pub fn delete_mino(&mut self, s: Option<&Stat>) -> u16 {
     self.put_mino(s, 2)
   }
 
@@ -160,7 +161,7 @@ impl Model {
     let s = &self.current;
     if n.x != s.x || n.y != s.y || n.rotate != s.rotate {
       self.delete_mino(None);
-      if self.put_mino(Some(n.clone()), 0) != 0 {
+      if self.put_mino(Some(&n), 0) != 0 {
         self.current = n;
       } else {
         self.put_mino(None, 0);
