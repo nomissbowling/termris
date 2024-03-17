@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/termris/0.3.3")]
+#![doc(html_root_url = "https://docs.rs/termris/0.3.4")]
 //! termris terminal tetris for Rust
 //!
 
@@ -10,123 +10,18 @@ use crossterm::event::Event;
 use crossterm::event::{KeyEvent, KeyEventKind, KeyModifiers};
 use crossterm::event::KeyCode::{self, Left, Down, Up, Right};
 use crossterm::event::{MouseEvent, MouseEventKind, MouseButton};
-use crossterm::style;
 
-use prayterm::{PrayTerm, Rgb, NopColor};
+use prayterm::{Rgb, NopColor};
+use mvc_rs::TView;
 
-use mvc_rs::{TPacket, TView};
+pub mod packet;
+use packet::Packet;
 
-/// NColor ARGB bgc fgc
-#[derive(Debug, Clone)]
-pub enum NColor {
-  Black = 0x00000000, Black_ = 0xc0ffffff,
-  Gray = 0x00a0a0a0, Gray_ = 0xc0404040,
-  Red = 0x00f04040, Red_ = 0xc040f0f0,
-  Green = 0x0040f040, Green_ = 0xc0f040f0,
-  Blue = 0x004040f0, Blue_ = 0xc0f0f040,
-  Cyan = 0x0040f0f0, Cyan_ = 0xc0f04040,
-  Magenta = 0x00f040f0, Magenta_ = 0xc040f040,
-  Yellow = 0x00f0f040, Yellow_ = 0xc04040f0,
-  Orange = 0x00f0c040, Orange_ = 0xc040c0f0,
-  Violet = 0x00c040f0, Violet_ = 0xc0c0f040,
-  White = 0x00f0f0f0, White_ = 0xc0202020,
-  LightRed = 0x00f02060, LightRed_ = 0xc060f020,
-  LightGreen = 0x0060f020, LightGreen_ = 0xc02060f0,
-  LightBlue = 0x002060f0, LightBlue_ = 0xc0f02060,
-  LightBlack = 0x00202020, LightBlack_ = 0xc0f0f0f0
-}
+pub mod model;
+use model::Model;
 
-/// trait NopColor for NColor
-impl NopColor for NColor {
-  /// nop
-  fn nop(&self) -> style::Color {
-    let bgra = (0..4).into_iter().map(|i|
-      (self.clone() as u32 >> (8 * i)) as u8 & 0x0ff).collect::<Vec<_>>();
-    style::Color::Rgb{r: bgra[2], g: bgra[1], b: bgra[0]}
-  }
-}
-
-/// Packet
-pub struct Packet<'a> {
-  /// x
-  pub x: u16,
-  /// y
-  pub y: u16,
-  /// style
-  pub st: u16,
-  /// bgc abstract id
-  pub bgc: u16,
-  /// fgc abstract id
-  pub fgc: u16,
-  /// msg
-  pub msg: &'a String
-}
-
-/// trait TPacket for Packet
-impl TPacket for Packet<'_> {
-  /// to_vec
-  fn to_vec(&self) -> Vec<u16> {
-    vec![self.x, self.y, self.st, self.bgc, self.fgc]
-  }
-  /// as_bytes
-  fn as_bytes(&self) -> &[u8] {
-    self.msg.as_bytes()
-  }
-  /// as_str
-  fn as_str(&self) -> &str {
-    self.msg.as_str()
-  }
-}
-
-/// Model
-pub struct Model {
-  /// timeout
-  pub ms: time::Duration
-}
-
-/// Model
-impl Model {
-  /// constructor
-  pub fn new() -> Self {
-    Model{ms: time::Duration::from_millis(10)}
-  }
-}
-
-/// View
-pub struct View<T> {
-  /// colors
-  pub colors: Vec<T>,
-  /// term
-  pub tm: PrayTerm
-}
-
-/// trait TView for View
-impl<T: NopColor + Clone> TView<T> for View<T> {
-  /// wr
-  fn wr(&mut self, p: impl TPacket) -> Result<(), Box<dyn Error>> {
-    let v = p.to_vec();
-    let (x, y, st, bgc, fgc) = (v[0], v[1], v[2], v[3], v[4]);
-    let msg = &p.as_str().to_string();
-    self.tm.wr(x, y, st, self.col(bgc), self.col(fgc), msg)?;
-    Ok(())
-  }
-  /// reg
-  fn reg(&mut self, c: Vec<T>) -> () {
-    self.colors = c;
-  }
-  /// col
-  fn col(&self, n: u16) -> T {
-    self.colors[n as usize].clone()
-  }
-}
-
-/// View
-impl<T: NopColor + Clone> View<T> {
-  /// constructor
-  pub fn new(colors: Vec<T>) -> Result<Self, Box<dyn Error>> {
-    Ok(View{colors, tm: PrayTerm::new(2)?})
-  }
-}
+pub mod view;
+use view::{NColor, View};
 
 /// Termris
 pub struct Termris {
@@ -135,7 +30,9 @@ pub struct Termris {
   /// view
   pub v: View<NColor>,
   /// time Instant
-  pub t: time::Instant
+  pub t: time::Instant,
+  /// time Duration
+  pub d: time::Duration
 }
 
 /// trait Drop for Termris
@@ -150,7 +47,7 @@ impl Drop for Termris {
 impl Termris {
   /// constructor
   pub fn new() -> Result<Self, Box<dyn Error>> {
-    let m = Model::new();
+    let m = Model::new(10, 20);
     let colors = [ // bgc fgc
       NColor::Black, NColor::Black_,
       NColor::Gray, NColor::Gray_,
@@ -166,9 +63,13 @@ impl Termris {
       NColor::LightRed, NColor::LightRed_,
       NColor::LightGreen, NColor::LightGreen_,
       NColor::LightBlue, NColor::LightBlue_,
-      NColor::LightBlack, NColor::LightBlack_].to_vec();
-    let mut s = Termris{m, v: View::new(colors)?, t: time::Instant::now()};
+      NColor::LightBlack, NColor::LightBlack_,
+      NColor::DarkGray, NColor::DarkGray_].to_vec();
+    let v = View::new(colors)?;
+    let mut s = Termris{m, v,
+      t: time::Instant::now(), d: time::Duration::new(0, 120_000_000)}; // ns
     s.v.tm.begin()?;
+    s.m.init_board();
     Ok(s)
   }
 
@@ -187,6 +88,21 @@ impl Termris {
     Ok(())
   }
 
+  /// key
+  pub fn key(&mut self, k: KeyEvent) -> bool {
+    if k.kind != KeyEventKind::Press { return false; }
+    let mut f = true;
+    match k.code {
+    Left | KeyCode::Char('h') => { self.m.proc_key(1); },
+    Down | KeyCode::Char('j') => { self.m.proc_key(4); },
+    Up | KeyCode::Char('k') => { self.m.proc_key(3); },
+    Right | KeyCode::Char('l') => { self.m.proc_key(2); },
+    KeyCode::Char(' ') => { self.m.proc_key(0); },
+    _ => { f = false; }
+    }
+    f
+  }
+
   /// proc
   pub fn proc(&mut self, rx: &mpsc::Receiver<Result<Event, std::io::Error>>) ->
     Result<bool, Box<dyn Error>> {
@@ -195,6 +111,22 @@ impl Termris {
     Err(mpsc::RecvTimeoutError::Disconnected) => Err("Disconnected".into()),
     Err(mpsc::RecvTimeoutError::Timeout) => { // idle
       self.status(3, 3, 20, &format!("{:?}", self.t.elapsed()))?;
+      self.m.b.display_board(&mut self.v)?;
+      let u = time::Instant::now();
+/*
+      if u.duration_since(self.t) >= self.d {
+        if self.m.down_mino() != 0 { return Ok(false); }
+        self.t = u;
+      }
+*/
+      if let Some(n) = u.checked_duration_since(self.t) {
+        if n >= self.d {
+          if self.m.down_mino() != 0 { return Ok(false); }
+          self.t = u;
+        }
+      } else {
+        ()
+      }
       Ok(true)
     },
     Ok(ev) => {
@@ -214,6 +146,7 @@ impl Termris {
         _ => true // through down when kind != KeyEventKind::Press
         };
         if !f { return Ok(false); }
+        if self.key(k) { self.t -= self.d; }
         true
       },
       Ok(Event::Mouse(MouseEvent{kind, column: x, row: y, modifiers: _})) => {

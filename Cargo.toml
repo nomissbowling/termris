@@ -1,6 +1,6 @@
 [package]
 name = "termris"
-version = "0.3.3" # change with html_root_url in main.rs
+version = "0.3.4" # change with html_root_url in main.rs
 edition = "2021"
 authors = ["nomissbowling <nomissbowling@yahoo.co.jp>"]
 
@@ -16,8 +16,8 @@ repository = "https://github.com/nomissbowling/termris"
 readme = "README.md"
 
 [dependencies]
+rand = { version = "0.8.5" }
 mvc-rs = { version = "3.3" }
-
 prayterm = { version = "1.0" }
 
 crossterm = { version = "0.27.0" }
