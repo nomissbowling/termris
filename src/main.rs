@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/termris/3.4.1")]
+#![doc(html_root_url = "https://docs.rs/termris/3.4.2")]
 //! termris terminal tetris for Rust
 //!
 
@@ -23,16 +23,23 @@ use model::Model;
 pub mod view;
 use view::{NColor, View};
 
+pub mod controller;
+use controller::Controller;
+
+pub mod stat;
+
 /// Termris
 pub struct Termris {
-  /// model
-  pub m: Model,
   /// view
   pub v: View<NColor>,
+  /// controller
+  pub c: Controller,
   /// time Instant
   pub t: time::Instant,
   /// time Duration
-  pub d: time::Duration
+  pub d: time::Duration,
+  /// timeout
+  pub ms: time::Duration
 }
 
 /// trait Drop for Termris
@@ -66,10 +73,12 @@ impl Termris {
       NColor::LightBlack, NColor::LightBlack_,
       NColor::DarkGray, NColor::DarkGray_].to_vec();
     let v = View::new(colors)?;
-    let mut s = Termris{m, v,
-      t: time::Instant::now(), d: time::Duration::new(0, 120_000_000)}; // ns
+    let c = Controller::new(m);
+    let mut s = Termris{v, c,
+      t: time::Instant::now(), d: time::Duration::new(0, 120_000_000), // ns
+      ms: time::Duration::from_millis(10)};
     s.v.tm.begin()?;
-    s.m.init_board();
+    s.c.init(&mut s.v)?;
     Ok(s)
   }
 
@@ -93,11 +102,11 @@ impl Termris {
     if k.kind != KeyEventKind::Press { return false; }
     let mut f = true;
     match k.code {
-    Left | KeyCode::Char('h') => { self.m.proc_key(1); },
-    Down | KeyCode::Char('j') => { self.m.proc_key(4); },
-    Up | KeyCode::Char('k') => { self.m.proc_key(3); },
-    Right | KeyCode::Char('l') => { self.m.proc_key(2); },
-    KeyCode::Char(' ') => { self.m.proc_key(0); },
+    Left | KeyCode::Char('h') => { self.c.proc_key(1); },
+    Down | KeyCode::Char('j') => { self.c.proc_key(4); },
+    Up | KeyCode::Char('k') => { self.c.proc_key(3); },
+    Right | KeyCode::Char('l') => { self.c.proc_key(2); },
+    KeyCode::Char(' ') => { self.c.proc_key(0); },
     _ => { f = false; }
     }
     f
@@ -106,22 +115,22 @@ impl Termris {
   /// proc
   pub fn proc(&mut self, rx: &mpsc::Receiver<Result<Event, std::io::Error>>) ->
     Result<bool, Box<dyn Error>> {
-    // thread::sleep(self.m.ms);
-    match rx.recv_timeout(self.m.ms) {
+    // thread::sleep(self.ms);
+    match rx.recv_timeout(self.ms) {
     Err(mpsc::RecvTimeoutError::Disconnected) => Err("Disconnected".into()),
     Err(mpsc::RecvTimeoutError::Timeout) => { // idle
       self.status(3, 3, 20, &format!("{:?}", self.t.elapsed()))?;
-      self.m.b.display_board(&mut self.v)?;
+      self.c.refresh(&mut self.v)?;
       let u = time::Instant::now();
 /*
       if u.duration_since(self.t) >= self.d {
-        if self.m.down_mino() != 0 { return Ok(false); }
+        if !self.c.proc_idle() { return Ok(false); }
         self.t = u;
       }
 */
       if let Some(n) = u.checked_duration_since(self.t) {
         if n >= self.d {
-          if self.m.down_mino() != 0 { return Ok(false); }
+          if !self.c.proc_idle() { return Ok(false); }
           self.t = u;
         }
       } else {
@@ -174,9 +183,9 @@ impl Termris {
 
   /// mainloop
   pub fn mainloop(&mut self) -> Result<(), Box<dyn Error>> {
-    let (_tx, rx) = self.v.tm.prepare_thread(self.m.ms)?;
+    let (_tx, rx) = self.v.tm.prepare_thread(self.ms)?;
     loop { if !self.proc(&rx)? { break; } }
-    self.m.b.display_board(&mut self.v)?;
+    self.c.fin(&mut self.v)?;
     // handle.join()?;
     Ok(())
   }
