@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/termris/3.4.2")]
+#![doc(html_root_url = "https://docs.rs/termris/3.4.3")]
 //! termris terminal tetris for Rust
 //!
 
@@ -8,7 +8,7 @@ use std::sync::mpsc;
 
 use crossterm::event::Event;
 use crossterm::event::{KeyEvent, KeyEventKind, KeyModifiers};
-use crossterm::event::KeyCode::{self, Left, Down, Up, Right};
+use crossterm::event::KeyCode;
 use crossterm::event::{MouseEvent, MouseEventKind, MouseButton};
 
 use prayterm::{Rgb, NopColor};
@@ -97,21 +97,6 @@ impl Termris {
     Ok(())
   }
 
-  /// key
-  pub fn key(&mut self, k: KeyEvent) -> bool {
-    if k.kind != KeyEventKind::Press { return false; }
-    let mut f = true;
-    match k.code {
-    Left | KeyCode::Char('h') => { self.c.proc_key(1); },
-    Down | KeyCode::Char('j') => { self.c.proc_key(4); },
-    Up | KeyCode::Char('k') => { self.c.proc_key(3); },
-    Right | KeyCode::Char('l') => { self.c.proc_key(2); },
-    KeyCode::Char(' ') => { self.c.proc_key(0); },
-    _ => { f = false; }
-    }
-    f
-  }
-
   /// proc
   pub fn proc(&mut self, rx: &mpsc::Receiver<Result<Event, std::io::Error>>) ->
     Result<bool, Box<dyn Error>> {
@@ -123,13 +108,13 @@ impl Termris {
       self.c.refresh(&mut self.v)?;
       let u = time::Instant::now();
 /*
-      if u.duration_since(self.t) >= self.d {
+      if u.duration_since(self.t) >= self.d / self.c.speed() {
         if !self.c.proc_idle() { return Ok(false); }
         self.t = u;
       }
 */
       if let Some(n) = u.checked_duration_since(self.t) {
-        if n >= self.d {
+        if n >= self.d / self.c.speed() {
           if !self.c.proc_idle() { return Ok(false); }
           self.t = u;
         }
@@ -155,7 +140,7 @@ impl Termris {
         _ => true // through down when kind != KeyEventKind::Press
         };
         if !f { return Ok(false); }
-        if self.key(k) { self.t -= self.d; }
+        if self.c.key(k) { self.t -= self.d; }
         true
       },
       Ok(Event::Mouse(MouseEvent{kind, column: x, row: y, modifiers: _})) => {

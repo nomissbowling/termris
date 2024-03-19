@@ -16,6 +16,8 @@ use crate::stat::Stat;
 pub struct Model {
   /// minos
   pub minos: Vec<Mino>,
+  /// fall
+  pub f: u32,
   /// board
   pub b: Board
 }
@@ -24,7 +26,7 @@ pub struct Model {
 impl Model {
   /// constructor
   pub fn new(w: u16, h: u16) -> Self {
-    Model{minos: Mino::gen_minos(), b: Board::new(w, h)}
+    Model{minos: Mino::gen_minos(), f: 0, b: Board::new(w, h)}
   }
 
   /// put mino (default action = 0)
@@ -85,7 +87,8 @@ impl Model {
   }
 
   /// delete line
-  pub fn delete_line(&mut self) {
+  pub fn delete_line(&mut self) -> u16 {
+    let mut n = 0;
     for r in 1..self.b.h - 2 {
       let mut flg = true;
       while flg {
@@ -93,6 +96,7 @@ impl Model {
           if self.b.get_dot(c, r) == 0 { flg = false; }
         }
         if !flg { break; }
+        n += 1;
         for j in r..self.b.h - 2 {
           for i in 1..self.b.w + 1 {
             self.b.draw_dot_copy(i, j, i, j + 1);
@@ -100,6 +104,7 @@ impl Model {
         }
       }
     }
+    n
   }
 
   /// down mino
@@ -111,9 +116,11 @@ impl Model {
       self.put_mino(s, 0);
       self.delete_line();
       *s = self.new_mino();
-      if self.put_mino(s, 0) == 0 { self.over(); return 1; }
+      if self.put_mino(s, 0) == 0 { self.over(); return 1; } // over
+      self.f = 0;
+      return 2; // floor
     }
-    0
+    0 // fall
   }
 
   /// proc key
@@ -136,6 +143,7 @@ impl Model {
         self.put_mino(s, 0);
       }
     }
+    if ret == 1 { self.f = 1; }
     ret
   }
 }

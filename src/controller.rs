@@ -3,6 +3,9 @@
 
 use std::error::Error;
 
+use crossterm::event::{KeyEvent, KeyEventKind};
+use crossterm::event::KeyCode::{self, Left, Down, Up, Right};
+
 use mvc_rs::TView;
 
 use crate::model::Model;
@@ -46,11 +49,27 @@ impl Controller {
 
   /// proc idle
   pub fn proc_idle(&mut self) -> bool {
-    self.m.down_mino(&mut self.current) == 0
+    self.m.down_mino(&mut self.current) & 0x01 == 0
   }
 
-  /// proc key
-  pub fn proc_key(&mut self, k: u8) -> u16 {
-    self.m.proc_key(&mut self.current, k)
+  /// key
+  pub fn key(&mut self, k: KeyEvent) -> bool {
+    if k.kind != KeyEventKind::Press { return false; }
+    let mut f = true;
+    let k = match k.code {
+    Left | KeyCode::Char('h') => 1,
+    Down | KeyCode::Char('j') => 4,
+    Up | KeyCode::Char('k') => 3,
+    Right | KeyCode::Char('l') => 2,
+    KeyCode::Char(' ') => 0,
+    _ => { f = false; 0xff }
+    };
+    if f { if self.m.proc_key(&mut self.current, k) == 0 { f = false; } }
+    f
+  }
+
+  /// speed
+  pub fn speed(&self) -> u32 {
+    self.m.f * 20 + 1
   }
 }
