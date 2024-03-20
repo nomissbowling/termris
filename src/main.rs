@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/termris/3.4.3")]
+#![doc(html_root_url = "https://docs.rs/termris/3.4.4")]
 //! termris terminal tetris for Rust
 //!
 
@@ -76,7 +76,7 @@ impl Termris {
     let c = Controller::new(m);
     let mut s = Termris{v, c,
       t: time::Instant::now(), d: time::Duration::new(0, 120_000_000), // ns
-      ms: time::Duration::from_millis(10)};
+      ms: time::Duration::from_millis(1)};
     s.v.tm.begin()?;
     s.c.init(&mut s.v)?;
     Ok(s)
@@ -101,7 +101,9 @@ impl Termris {
   pub fn proc(&mut self, rx: &mpsc::Receiver<Result<Event, std::io::Error>>) ->
     Result<bool, Box<dyn Error>> {
     // thread::sleep(self.ms);
-    match rx.recv_timeout(self.ms) {
+    // match rx.recv_timeout(self.ms) {
+    spin_sleep::sleep(self.ms);
+    match rx.recv_timeout(time::Duration::new(0, 0)) {
     Err(mpsc::RecvTimeoutError::Disconnected) => Err("Disconnected".into()),
     Err(mpsc::RecvTimeoutError::Timeout) => { // idle
       self.status(3, 3, 20, &format!("{:?}", self.t.elapsed()))?;

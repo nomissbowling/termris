@@ -70,6 +70,6 @@ impl Controller {
 
   /// speed
   pub fn speed(&self) -> u32 {
-    self.m.f * 20 + 1
+    vec![1, 120][self.m.f as usize]
   }
 }
