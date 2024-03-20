@@ -1,6 +1,6 @@
 [package]
 name = "termris"
-version = "3.4.4" # change with html_root_url in main.rs
+version = "3.4.5" # change with html_root_url in main.rs
 edition = "2021"
 authors = ["nomissbowling <nomissbowling@yahoo.co.jp>"]
 

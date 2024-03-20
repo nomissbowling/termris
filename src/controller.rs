@@ -15,6 +15,8 @@ use crate::stat::Stat;
 pub struct Controller {
   /// model
   pub m: Model,
+  /// speed
+  pub ms: u32,
   /// status
   pub current: Stat
 }
@@ -22,8 +24,8 @@ pub struct Controller {
 /// Controller
 impl Controller {
   /// constructor
-  pub fn new(m: Model) -> Self {
-    Controller{m, current: Stat::new(0, 0, 0, 0)}
+  pub fn new(m: Model, ms: u32) -> Self {
+    Controller{m, ms, current: Stat::new(0, 0, 0, 0)}
   }
 
   /// init
@@ -70,6 +72,6 @@ impl Controller {
 
   /// speed
   pub fn speed(&self) -> u32 {
-    vec![1, 120][self.m.f as usize]
+    vec![1, self.ms][self.m.f as usize]
   }
 }

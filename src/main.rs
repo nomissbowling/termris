@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/termris/3.4.4")]
+#![doc(html_root_url = "https://docs.rs/termris/3.4.5")]
 //! termris terminal tetris for Rust
 //!
 
@@ -73,9 +73,10 @@ impl Termris {
       NColor::LightBlack, NColor::LightBlack_,
       NColor::DarkGray, NColor::DarkGray_].to_vec();
     let v = View::new(colors)?;
-    let c = Controller::new(m);
+    let ms = 120; // ms
+    let c = Controller::new(m, ms);
     let mut s = Termris{v, c,
-      t: time::Instant::now(), d: time::Duration::new(0, 120_000_000), // ns
+      t: time::Instant::now(), d: time::Duration::new(0, ms * 1_000_000), // ns
       ms: time::Duration::from_millis(1)};
     s.v.tm.begin()?;
     s.c.init(&mut s.v)?;
